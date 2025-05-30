@@ -78,8 +78,7 @@ except Exception as e:
     print(f"An unexpected error occurred while writing to file: {e}")
 
 # --- Cloudflare DNS Update Logic ---
-print("
-Starting Cloudflare DNS update phase...")
+print("Starting Cloudflare DNS update phase...")
 
 if not unique_ips:
     print("No unique IPs collected. Skipping DNS update process.")
@@ -93,8 +92,7 @@ else:
         ip_to_assign = unique_ips[i]
         record_id = None # Reset for each subdomain
 
-        print(f"
-Processing subdomain: {current_subdomain} with IP: {ip_to_assign}")
+        print(f"Processing subdomain: {current_subdomain} with IP: {ip_to_assign}")
 
         # Fetch Existing DNS Record
         fetch_url = f"https://api.cloudflare.com/client/v4/zones/{CLOUDFLARE_ZONE_ID}/dns_records?type=A&name={current_subdomain}"
@@ -177,8 +175,6 @@ Processing subdomain: {current_subdomain} with IP: {ip_to_assign}")
             except ValueError as e:
                 print(f"Error parsing JSON response during creation for {current_subdomain}: {e}")
     
-    print("
-Cloudflare DNS update phase completed.")
+    print("Cloudflare DNS update phase completed.")
 
-print("
-Script finished.")
+print("Script finished.")
