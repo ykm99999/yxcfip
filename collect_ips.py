@@ -70,8 +70,7 @@ if os.path.exists('ip.txt'):
 try:
     with open('ip.txt', 'w') as file:
         for ip in unique_ips:
-            file.write(ip + '
-')
+            file.write(ip + '')
     print(f"{len(unique_ips)} unique IP addresses were collected and saved to ip.txt.")
 except IOError as e:
     print(f"Error writing to ip.txt: {e}")
