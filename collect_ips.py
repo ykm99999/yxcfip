@@ -39,9 +39,9 @@ ip_pattern = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
 all_ips = []
 
 print("
-Starting IP collection phase...")
-for url in urls:
-    print(f"Fetching IPs from: {url}")
+Starting IP collection phase...") # This should be line 39 if no blank lines above were removed
+for url in urls: # Line 40
+    print(f"Fetching IPs from: {url}") # Line 41 - Ensure this line is exactly as shown
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
@@ -103,47 +103,38 @@ Processing subdomain: {current_subdomain} with IP: {ip_to_assign}")
         print(f"Attempting to fetch existing DNS record for {current_subdomain}...")
         try:
             response = requests.get(fetch_url, headers=CLOUDFLARE_HEADERS, timeout=10)
-            # Check for specific non-critical errors first
-            if response.status_code == 404: # Not Found
+            if response.status_code == 404:
                 print(f"No existing 'A' record found for {current_subdomain} (404). Will attempt to create.")
-                record_id = None # Ensure record_id is None for creation path
-            elif response.status_code == 401 or response.status_code == 403: # Unauthorized or Forbidden
+                record_id = None
+            elif response.status_code == 401 or response.status_code == 403:
                 print(f"Authorization error ({response.status_code}) fetching DNS record for {current_subdomain}. Check API token and permissions. Skipping this subdomain.")
-                print(f"Response: {response.text}") # Log more details for auth errors
-                continue # Skip to next subdomain due to critical auth error for this operation
+                print(f"Response: {response.text}")
+                continue
             else:
-                response.raise_for_status() # Raise HTTPError for other bad responses (e.g., 5xx, other 4xx)
+                response.raise_for_status()
                 records_data = response.json()
                 if records_data.get("success") and records_data.get("result"):
-                    if records_data["result"]: # If there's at least one record
+                    if records_data["result"]:
                         record_id = records_data["result"][0]["id"]
                         print(f"Found existing record for {current_subdomain} with ID: {record_id}")
                     else:
-                        # This case might be redundant if 404 is handled above, but good for robustness
                         print(f"No existing 'A' record found for {current_subdomain} (API success, empty result).")
                         record_id = None
                 else:
                     print(f"Failed to fetch valid record data for {current_subdomain}. Response: {records_data}")
-                    record_id = None # Treat as record not found if data is invalid
+                    record_id = None
 
-        except requests.exceptions.HTTPError as e: # Handles errors from response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
             print(f"HTTP error fetching DNS record for {current_subdomain}: {e}")
-            # For non-401/403/404 HTTP errors, decide if critical enough to skip.
-            # For now, we'll try to proceed to create if record_id is still None,
-            # but often these errors might indicate a broader issue.
-            # However, the problem was that 404s were caught here and skipped creation.
-            # The new logic handles 404 explicitly. Other HTTP errors will now also let it try to create if record_id is None.
-            # This might not be ideal for all HTTP errors (e.g. 500), but aligns with fixing the "404 skips creation" bug.
-            # A more robust solution might involve more granular error checking here.
-            if record_id is not None: # If record_id was somehow set before an unexpected HTTP error
+            if record_id is not None:
                 print("Proceeding without a valid record_id due to HTTP error during fetch.")
-                record_id = None # Force to None
-        except requests.exceptions.RequestException as e: # Other network issues (timeout, DNS failure)
+                record_id = None
+        except requests.exceptions.RequestException as e:
             print(f"Network error fetching DNS record for {current_subdomain}: {e}")
-            continue # Skip to next subdomain for general network issues
+            continue
         except ValueError as e: # Includes JSONDecodeError
             print(f"Error parsing JSON response for {current_subdomain}: {e}")
-            record_id = None # Assume record not found or data invalid
+            record_id = None
 
 
         # Data for DNS Update/Create
@@ -169,7 +160,7 @@ Processing subdomain: {current_subdomain} with IP: {ip_to_assign}")
                     print(f"Failed to update DNS record for {current_subdomain}. Response: {update_result}")
             except requests.exceptions.RequestException as e:
                 print(f"Error updating DNS record for {current_subdomain}: {e}")
-            except ValueError as e: # Includes JSONDecodeError
+            except ValueError as e:
                 print(f"Error parsing JSON response during update for {current_subdomain}: {e}")
         else:
             # Create New Record
@@ -185,7 +176,7 @@ Processing subdomain: {current_subdomain} with IP: {ip_to_assign}")
                     print(f"Failed to create DNS record for {current_subdomain}. Response: {create_result}")
             except requests.exceptions.RequestException as e:
                 print(f"Error creating DNS record for {current_subdomain}: {e}")
-            except ValueError as e: # Includes JSONDecodeError
+            except ValueError as e:
                 print(f"Error parsing JSON response during creation for {current_subdomain}: {e}")
     
     print("
