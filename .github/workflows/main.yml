@@ -28,7 +28,7 @@ jobs:
     - name: Run script
       env:
         CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        CLOUDFLARE_ZONE_ID: 092424c1585b1f130d5f22c1babe0573
+        CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
       run: python ${{ github.workspace }}/collect_ips.py
         
     - name: Commit and push changes
