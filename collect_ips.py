@@ -32,7 +32,7 @@ print(f"Target Subdomains: {TARGET_SUBDOMAINS}")
 # --- Existing IP Collection Logic ---
 # 目标URL列表
 urls = [
-    'https://api.uouin.com/cloudflare.html',
+    'https://cf.vvhan.com/',
     'https://ip.164746.xyz'
 ]
 ip_pattern = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
