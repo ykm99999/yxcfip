@@ -38,10 +38,9 @@ urls = [
 ip_pattern = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
 all_ips = []
 
-print("
-Starting IP collection phase...") # This should be line 39 if no blank lines above were removed
-for url in urls: # Line 40
-    print(f"Fetching IPs from: {url}") # Line 41 - Ensure this line is exactly as shown
+print("Starting IP collection phase...") 
+for url in urls: 
+    print(f"Fetching IPs from: {url}") 
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
