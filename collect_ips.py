@@ -1,35 +1,35 @@
 import requests
 import re
 import os
-import sys # For sys.exit()
+import sys # 用于 sys.exit()
 
-# --- Configuration and Setup for Cloudflare ---
-print("Starting script: Cloudflare IP Updater")
+# --- Cloudflare 配置与设置 ---
+print("开始运行脚本：Cloudflare IP 更新器")
 
 CLOUDFLARE_API_TOKEN = os.getenv('CLOUDFLARE_API_TOKEN')
 CLOUDFLARE_ZONE_ID = os.getenv('CLOUDFLARE_ZONE_ID')
 
 if not CLOUDFLARE_API_TOKEN:
-    print("Error: CLOUDFLARE_API_TOKEN environment variable not set.")
+    print("错误：CLOUDFLARE_API_TOKEN 环境变量未设置。")
     sys.exit(1)
 if not CLOUDFLARE_ZONE_ID:
-    print("Error: CLOUDFLARE_ZONE_ID environment variable not set.")
+    print("错误：CLOUDFLARE_ZONE_ID 环境变量未设置。")
     sys.exit(1)
 
 BASE_DOMAIN_NAME = "lyl7410.cloudns.ch"
-TARGET_SUBDOMAINS = [f"sp{i}.{BASE_DOMAIN_NAME}" for i in range(10, 21)] # sp10 to sp20
+TARGET_SUBDOMAINS = [f"sp{i}.{BASE_DOMAIN_NAME}" for i in range(10, 21)] # sp10 到 sp20
 
 CLOUDFLARE_HEADERS = {
     "Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}",
     "Content-Type": "application/json"
 }
 
-print("Cloudflare configuration loaded.")
+print("Cloudflare 配置已加载。")
 print(f"Zone ID: {CLOUDFLARE_ZONE_ID}")
-print(f"Base Domain: {BASE_DOMAIN_NAME}")
-print(f"Target Subdomains: {TARGET_SUBDOMAINS}")
+print(f"基础域名: {BASE_DOMAIN_NAME}")
+print(f"目标子域名: {TARGET_SUBDOMAINS}")
 
-# --- Existing IP Collection Logic ---
+# --- 现有 IP 收集逻辑 ---
 # 目标URL列表
 urls = [
     'https://cf.vvhan.com/',
@@ -38,20 +38,25 @@ urls = [
 ip_pattern = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
 all_ips = []
 
-print("Starting IP collection phase...") 
-for url in urls: 
-    print(f"Fetching IPs from: {url}") 
+print("开始 IP 收集阶段...")
+for url in urls:
+    print(f"正在从以下地址获取IP: {url}")
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         page_content = response.text
         ip_matches = re.findall(ip_pattern, page_content)
-        all_ips.extend(ip_matches)
-        print(f"Found {len(ip_matches)} potential IPs from {url}.")
+        if ip_matches: # 检查是否找到了任何IP
+            for ip in ip_matches:
+                print(f"从 {url} 提取到IP: {ip}") # 新增的中文日志信息
+                all_ips.append(ip) # 单独添加IP
+            print(f"从 {url} 找到 {len(ip_matches)} 个潜在IP。")
+        else:
+            print(f"未在 {url} 找到IP。")
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching URL {url}: {e}")
+        print(f"获取 URL {url} 时出错: {e}")
     except Exception as e:
-        print(f"An unexpected error occurred while processing {url}: {e}")
+        print(f"处理 {url} 时发生意外错误: {e}")
 
 unique_ips = []
 seen_ips = set()
@@ -63,48 +68,48 @@ for ip in all_ips:
 if os.path.exists('ip.txt'):
     try:
         os.remove('ip.txt')
-        print("Removed existing ip.txt.")
+        print("已删除现有的 ip.txt 文件。")
     except OSError as e:
-        print(f"Error removing existing ip.txt: {e}")
+        print(f"删除现有 ip.txt 文件时出错: {e}")
 
 try:
     with open('ip.txt', 'w') as file:
         for ip in unique_ips:
             file.write(ip + '')
-    print(f"{len(unique_ips)} unique IP addresses were collected and saved to ip.txt.")
+    print(f"{len(unique_ips)} 个唯一IP地址已收集并保存到 ip.txt。")
 except IOError as e:
-    print(f"Error writing to ip.txt: {e}")
+    print(f"写入 ip.txt 文件时出错: {e}")
 except Exception as e:
-    print(f"An unexpected error occurred while writing to file: {e}")
+    print(f"写入文件时发生意外错误: {e}")
 
-# --- Cloudflare DNS Update Logic ---
-print("Starting Cloudflare DNS update phase...")
+# --- Cloudflare DNS 更新逻辑 ---
+print("开始 Cloudflare DNS 更新阶段...")
 
 if not unique_ips:
-    print("No unique IPs collected. Skipping DNS update process.")
+    print("未收集到唯一IP。跳过 DNS 更新过程。")
 else:
-    print(f"Found {len(unique_ips)} unique IPs. Proceeding with DNS updates for up to {len(TARGET_SUBDOMAINS)} subdomains.")
+    print(f"找到 {len(unique_ips)} 个唯一IP。将为最多 {len(TARGET_SUBDOMAINS)} 个子域名更新DNS。")
     
     num_ips_to_process = min(len(unique_ips), len(TARGET_SUBDOMAINS))
 
     for i in range(num_ips_to_process):
         current_subdomain = TARGET_SUBDOMAINS[i]
         ip_to_assign = unique_ips[i]
-        record_id = None # Reset for each subdomain
+        record_id = None # 为每个子域名重置
 
-        print(f"Processing subdomain: {current_subdomain} with IP: {ip_to_assign}")
+        print(f"正在处理子域名: {current_subdomain}，IP为: {ip_to_assign}")
 
-        # Fetch Existing DNS Record
+        # 获取现有 DNS 记录
         fetch_url = f"https://api.cloudflare.com/client/v4/zones/{CLOUDFLARE_ZONE_ID}/dns_records?type=A&name={current_subdomain}"
-        print(f"Attempting to fetch existing DNS record for {current_subdomain}...")
+        print(f"尝试获取 {current_subdomain} 的现有 DNS 记录...")
         try:
             response = requests.get(fetch_url, headers=CLOUDFLARE_HEADERS, timeout=10)
             if response.status_code == 404:
-                print(f"No existing 'A' record found for {current_subdomain} (404). Will attempt to create.")
+                print(f"未找到 {current_subdomain} 的现有 'A' 记录 (404)。将尝试创建。")
                 record_id = None
             elif response.status_code == 401 or response.status_code == 403:
-                print(f"Authorization error ({response.status_code}) fetching DNS record for {current_subdomain}. Check API token and permissions. Skipping this subdomain.")
-                print(f"Response: {response.text}")
+                print(f"获取 {current_subdomain} 的 DNS 记录时出现授权错误 ({response.status_code})。请检查 API 令牌和权限。跳过此子域名。")
+                print(f"响应: {response.text}")
                 continue
             else:
                 response.raise_for_status()
@@ -112,28 +117,28 @@ else:
                 if records_data.get("success") and records_data.get("result"):
                     if records_data["result"]:
                         record_id = records_data["result"][0]["id"]
-                        print(f"Found existing record for {current_subdomain} with ID: {record_id}")
+                        print(f"找到 {current_subdomain} 的现有记录，ID: {record_id}")
                     else:
-                        print(f"No existing 'A' record found for {current_subdomain} (API success, empty result).")
+                        print(f"未找到 {current_subdomain} 的现有 'A' 记录 (API 调用成功，但结果为空)。")
                         record_id = None
                 else:
-                    print(f"Failed to fetch valid record data for {current_subdomain}. Response: {records_data}")
+                    print(f"未能获取 {current_subdomain} 的有效记录数据。响应: {records_data}")
                     record_id = None
 
         except requests.exceptions.HTTPError as e:
-            print(f"HTTP error fetching DNS record for {current_subdomain}: {e}")
+            print(f"获取 {current_subdomain} DNS 记录时发生 HTTP 错误: {e}")
             if record_id is not None:
-                print("Proceeding without a valid record_id due to HTTP error during fetch.")
+                print("由于获取过程中发生 HTTP 错误，将在没有有效 record_id 的情况下继续。")
                 record_id = None
         except requests.exceptions.RequestException as e:
-            print(f"Network error fetching DNS record for {current_subdomain}: {e}")
+            print(f"获取 {current_subdomain} DNS 记录时发生网络错误: {e}")
             continue
-        except ValueError as e: # Includes JSONDecodeError
-            print(f"Error parsing JSON response for {current_subdomain}: {e}")
+        except ValueError as e: # 包括 JSONDecodeError
+            print(f"解析 {current_subdomain} 的 JSON 响应时出错: {e}")
             record_id = None
 
 
-        # Data for DNS Update/Create
+        # DNS 更新/创建所需数据
         dns_payload = {
             "type": "A",
             "name": current_subdomain,
@@ -143,38 +148,38 @@ else:
         }
 
         if record_id:
-            # Update Existing Record
+            # 更新现有记录
             update_url = f"https://api.cloudflare.com/client/v4/zones/{CLOUDFLARE_ZONE_ID}/dns_records/{record_id}"
-            print(f"Attempting to update record for {current_subdomain} (ID: {record_id}) with IP: {ip_to_assign}...")
+            print(f"尝试使用IP {ip_to_assign} 更新 {current_subdomain} (ID: {record_id}) 的记录...")
             try:
                 response = requests.put(update_url, json=dns_payload, headers=CLOUDFLARE_HEADERS, timeout=10)
                 response.raise_for_status()
                 update_result = response.json()
                 if update_result.get("success"):
-                    print(f"Successfully updated DNS record for {current_subdomain} to {ip_to_assign}.")
+                    print(f"已成功将 {current_subdomain} 的 DNS 记录更新为 {ip_to_assign}。")
                 else:
-                    print(f"Failed to update DNS record for {current_subdomain}. Response: {update_result}")
+                    print(f"未能更新 {current_subdomain} 的 DNS 记录。响应: {update_result}")
             except requests.exceptions.RequestException as e:
-                print(f"Error updating DNS record for {current_subdomain}: {e}")
+                print(f"更新 {current_subdomain} DNS 记录时出错: {e}")
             except ValueError as e:
-                print(f"Error parsing JSON response during update for {current_subdomain}: {e}")
+                print(f"更新 {current_subdomain} 期间解析 JSON 响应时出错: {e}")
         else:
-            # Create New Record
+            # 创建新记录
             create_url = f"https://api.cloudflare.com/client/v4/zones/{CLOUDFLARE_ZONE_ID}/dns_records"
-            print(f"Attempting to create new record for {current_subdomain} with IP: {ip_to_assign}...")
+            print(f"尝试为 {current_subdomain} 创建新记录，IP 为: {ip_to_assign}...")
             try:
                 response = requests.post(create_url, json=dns_payload, headers=CLOUDFLARE_HEADERS, timeout=10)
                 response.raise_for_status()
                 create_result = response.json()
                 if create_result.get("success"):
-                    print(f"Successfully created DNS record for {current_subdomain} with IP {ip_to_assign}.")
+                    print(f"已成功为 {current_subdomain} 创建 DNS 记录，IP 为 {ip_to_assign}。")
                 else:
-                    print(f"Failed to create DNS record for {current_subdomain}. Response: {create_result}")
+                    print(f"未能为 {current_subdomain} 创建 DNS 记录。响应: {create_result}")
             except requests.exceptions.RequestException as e:
-                print(f"Error creating DNS record for {current_subdomain}: {e}")
+                print(f"为 {current_subdomain} 创建 DNS 记录时出错: {e}")
             except ValueError as e:
-                print(f"Error parsing JSON response during creation for {current_subdomain}: {e}")
+                print(f"为 {current_subdomain} 创建记录期间解析 JSON 响应时出错: {e}")
     
-    print("Cloudflare DNS update phase completed.")
+    print("Cloudflare DNS 更新阶段已完成。")
 
-print("Script finished.")
+print("脚本运行结束。")
