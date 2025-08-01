@@ -3,26 +3,29 @@ import re
 import os
 import sys # 用于 sys.exit()
 
-# --- Cloudflare 配置与设置 ---
-print("开始运行脚本：Cloudflare IP 更新器")
+# -# 正则表达式用于匹配IP地址
+ip_pattern = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
 
-CLOUDFLARE_API_TOKEN = os.getenv('CLOUDFLARE_API_TOKEN')
-CLOUDFLARE_ZONE_ID = os.getenv('CLOUDFLARE_ZONE_ID')
+# 检查ip.txt文件是否存在,如果存在则删除它
+if os.path.exists('ip.txt'):
+    os.remove('ip.txt')
 
-if not CLOUDFLARE_API_TOKEN:
-    print("错误：CLOUDFLARE_API_TOKEN 环境变量未设置。")
-    sys.exit(1)
-if not CLOUDFLARE_ZONE_ID:
-    print("错误：CLOUDFLARE_ZONE_ID 环境变量未设置。")
-    sys.exit(1)
-
-BASE_DOMAIN_NAME = "lyl7410.cloudns.ch"
-TARGET_SUBDOMAINS = [f"sp{i}.{BASE_DOMAIN_NAME}" for i in range(10, 21)] # sp10 到 sp20
-
-CLOUDFLARE_HEADERS = {
-    "Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}",
-    "Content-Type": "application/json"
-}
+# 创建一个文件来存储IP地址
+with open('ip.txt', 'w') as file:
+    for url in urls:
+        # 发送HTTP请求获取网页内容
+        response = requests.get(url)
+        
+        # 使用BeautifulSoup解析HTML
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # 根据网站的不同结构找到包含IP地址的元素
+        if url == 'https://monitor.gacjie.cn/page/cloudflare/ipv4.html':
+            elements = soup.find_all('tr')
+        elif url == 'https://ip.164746.xyz':
+            elements = soup.find_all('tr')
+        else:
+            elements = soup.find_all('li')
 
 print("Cloudflare 配置已加载。")
 print(f"Zone ID: {CLOUDFLARE_ZONE_ID}")
